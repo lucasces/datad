@@ -1,0 +1,12 @@
+language: go
+
+go:
+  - 1.5.1
+
+install:
+    - go get golang.org/x/net/ipv4
+    - go get github.com/pborman/uuid
+    - go get github.com/boltdb/bolt
+
+script:
+    - make build
