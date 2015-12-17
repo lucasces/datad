@@ -1,21 +1,14 @@
-package defs
+package main
 
 import "bufio"
 import "io"
 import "math/rand"
 import "os"
+import "compress/gzip"
 import "strings"
 import "time"
 
 import "github.com/pborman/uuid"
-
-type NodeService interface {
-	AddNode(Node) error
-	NodeExists(string) (bool, error)
-	RemoveNode(string)
-	GetNode(string) (Node, error)
-	NodeInfo() Node
-}
 
 type Node struct {
 	Id   string
@@ -23,7 +16,7 @@ type Node struct {
 	Addr string
 }
 
-func GenerateNewNode() (Node, error) {
+func NewRandomNode() (Node, error) {
 	id := generateNewId()
 	name, err := generateNewName()
 	if err != nil {
@@ -31,6 +24,10 @@ func GenerateNewNode() (Node, error) {
 	}
 
 	return Node{id, name, ""}, nil
+}
+
+func NewNode(id string, name string, addr string) Node {
+	return Node{id, name, addr}
 }
 
 func generateNewId() string {
@@ -44,23 +41,33 @@ func generateNewName() (string, error) {
 	nameIdx := r1.Intn(258000)
 	surnameIdx := r1.Intn(88799)
 
-	nameFile, err := os.Open("names.dat")
+	nameFile, err := os.Open("names.dat.gz")
 	if err != nil {
 		return "", err
 	}
-	defer nameFile.Close()
 
-	name, err := readLine(nameFile, nameIdx)
-
-	surnameFile, err := os.Open("surnames.dat")
+	nameReader, err := gzip.NewReader(nameFile)
 	if err != nil {
 		return "", err
 	}
-	defer surnameFile.Close()
+	defer nameReader.Close()
 
-	surname, err := readLine(surnameFile, surnameIdx)
+	name, err := readLine(nameReader, nameIdx)
 
-	return name + " " + surname, nil
+	surnameFile, err := os.Open("names.dat.gz")
+	if err != nil {
+		return "", err
+	}
+
+	surnameReader, err := gzip.NewReader(surnameFile)
+	if err != nil {
+		return "", err
+	}
+	defer surnameReader.Close()
+
+	surname, err := readLine(surnameReader, surnameIdx)
+
+	return strings.Join([]string{name, surname}, " "), nil
 
 }
 

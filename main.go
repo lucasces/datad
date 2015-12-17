@@ -1,48 +1,24 @@
 package main
 
 import "log"
-
-import "datad/context"
-
-import "datad/config"
-import "datad/message"
-import "datad/node"
-
-type MessageService interface {
-	Announce() error
-	Send() error
-}
+import "os"
+import "os/signal"
 
 func main() {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, os.Kill)
 
-	config, err := config.LoadConfig()
+	ctx, err := NewContext()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	ctx, err := context.NewContext(config)
+	err = ctx.MessageService.Announce(NewAnnounceMessage(ctx.Config.NodeInfo, true))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	nodeService := node.NewNodeService(ctx)
-	ctx.NodeService = nodeService
+	_ = <-c
 
-	messageService, err := message.NewUDPMessageService(ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	ctx.MessageService = messageService
-
-	err = ctx.MessageService.Announce(message.NewAnnounceMessage(ctx.NodeService.NodeInfo(), true))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	config.SaveConfig()
-
-	ctx.WaitGroup.Wait()
-
-	log.Printf("hello")
+	ctx.Close()
 }

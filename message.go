@@ -1,32 +1,37 @@
-package message
+package main
 
 import "encoding/json"
 import "reflect"
 
-import "datad/defs"
+type MessageKind int
 
-type AnnounceDetail struct {
-	Id      string
-	Name    string
-	Respond bool
+const (
+	TYPE_ANNOUNCE MessageKind = iota
+)
+
+type Message struct {
+	ID     int
+	Kind   MessageKind
+	Source string
+	Detail interface{}
 }
 
-func Encode(message defs.Message) ([]byte, error) {
-	out, err := json.Marshal(message)
+func (self *Message) Encode() ([]byte, error) {
+	out, err := json.Marshal(self)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func Decode(message []byte) (defs.Message, error) {
-	out := defs.Message{}
+func Decode(message []byte) (Message, error) {
+	out := Message{}
 	err := json.Unmarshal(message, &out)
 	if err != nil {
-		return defs.Message{}, err
+		return Message{}, err
 	}
 	switch {
-	case out.Kind == defs.TYPE_ANNOUNCE:
+	case out.Kind == TYPE_ANNOUNCE:
 		obj := AnnounceDetail{}
 		det := out.Detail.(map[string]interface{})
 		for key, value := range det {
@@ -42,8 +47,4 @@ func Decode(message []byte) (defs.Message, error) {
 		out.Detail = obj
 	}
 	return out, nil
-}
-
-func NewAnnounceMessage(node defs.Node, respond bool) defs.Message {
-	return defs.Message{0, defs.TYPE_ANNOUNCE, "", AnnounceDetail{node.Id, node.Name, respond}}
 }

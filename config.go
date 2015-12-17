@@ -1,34 +1,42 @@
-package config
+package main
 
 import "encoding/json"
 import "io/ioutil"
 import "os"
 
-import "datad/defs"
+type HttpServiceConfig struct {
+	BindAddress   string
+	ReadTimeout   int
+	WriteTimeout  int
+	DefaultOffset int
+	DefaultLimit  int
+}
 
-type UDPMessageServiceConfig struct {
+type MessageServiceConfig struct {
 	BindAddress string
 	BindGroup   string
 	Workers     int
 }
 
 type Config struct {
-	NodeInfo       defs.Node
-	MessageService UDPMessageServiceConfig
+	NodeInfo       Node
+	MessageService MessageServiceConfig
+	HttpService    HttpServiceConfig
 	DatabaseFile   string
 }
 
 var filename = "datad_config.json"
 
 func NewDefaultConfig() (Config, error) {
-	nodeInfo, err := defs.GenerateNewNode()
+	nodeInfo, err := NewRandomNode()
 	if err != nil {
 		return Config{}, nil
 	}
 
-	messageServiceConfig := UDPMessageServiceConfig{"0.0.0.0:1024", "224.0.0.1", 1}
+	messageServiceConfig := MessageServiceConfig{"0.0.0.0:13131", "224.0.0.1", 1}
+	httpServiceConfig := HttpServiceConfig{"0.0.0.0:13131", 30, 30, 0, 10}
 
-	return Config{nodeInfo, messageServiceConfig, "datad.db"}, nil
+	return Config{nodeInfo, messageServiceConfig, httpServiceConfig, "datad.db"}, nil
 }
 
 func LoadConfig() (Config, error) {
@@ -56,7 +64,7 @@ func LoadConfig() (Config, error) {
 	}
 }
 
-func (self Config) SaveConfig() error {
+func (self *Config) SaveConfig() error {
 	data, err := json.Marshal(self)
 	if err != nil {
 		return err
